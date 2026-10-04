@@ -1,0 +1,2269 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark">
+<title>Visor 3D Profesional</title>
+
+<style>
+:root {
+    --bg: #0b0d11;
+    --panel: rgba(20, 23, 30, .94);
+    --panel-2: rgba(27, 31, 40, .96);
+    --border: rgba(255,255,255,.09);
+    --text: #f5f7fa;
+    --muted: #9ca3af;
+    --accent: #6ea8ff;
+    --accent-hover: #8ab8ff;
+    --danger: #ff6b6b;
+    --radius: 14px;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--text);
+    font-family:
+        Inter,
+        ui-sans-serif,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+}
+
+button,
+input {
+    font: inherit;
+}
+
+button {
+    border: 0;
+}
+
+#app {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template-columns: 1fr 310px;
+    background:
+        radial-gradient(circle at 50% 35%, #202632 0%, #0b0d11 55%);
+}
+
+#viewer {
+    position: relative;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    background:
+        radial-gradient(circle at center, #252a33 0%, #11141a 58%, #090b0f 100%);
+}
+
+#canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    touch-action: none;
+}
+
+#grid {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: .22;
+    background-image:
+        linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+    background-size: 40px 40px;
+    mask-image: radial-gradient(circle, black 20%, transparent 85%);
+}
+
+#topbar {
+    position: absolute;
+    top: 18px;
+    left: 18px;
+    right: 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    pointer-events: none;
+    z-index: 5;
+}
+
+.brand {
+    padding: 12px 15px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: rgba(10,12,16,.72);
+    backdrop-filter: blur(16px);
+    box-shadow: 0 10px 30px rgba(0,0,0,.2);
+}
+
+.brand strong {
+    display: block;
+    font-size: 14px;
+    letter-spacing: .2px;
+}
+
+.brand span {
+    display: block;
+    margin-top: 3px;
+    font-size: 11px;
+    color: var(--muted);
+}
+
+.viewer-actions {
+    display: flex;
+    gap: 8px;
+    pointer-events: auto;
+}
+
+.icon-btn {
+    width: 42px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+    border-radius: 11px;
+    color: var(--text);
+    background: rgba(10,12,16,.72);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: .18s ease;
+    backdrop-filter: blur(14px);
+}
+
+.icon-btn:hover {
+    background: rgba(40,45,56,.9);
+    border-color: rgba(255,255,255,.18);
+    transform: translateY(-1px);
+}
+
+.icon-btn:active {
+    transform: translateY(0);
+}
+
+#status {
+    position: absolute;
+    left: 18px;
+    bottom: 18px;
+    z-index: 5;
+    max-width: calc(100% - 36px);
+    padding: 9px 12px;
+    border-radius: 10px;
+    background: rgba(10,12,16,.72);
+    border: 1px solid var(--border);
+    backdrop-filter: blur(14px);
+    color: var(--muted);
+    font-size: 11px;
+    pointer-events: none;
+}
+
+#loading {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    display: none;
+    place-items: center;
+    background: rgba(5,7,10,.58);
+    backdrop-filter: blur(8px);
+}
+
+#loading.visible {
+    display: grid;
+}
+
+.loader-card {
+    min-width: 190px;
+    padding: 20px;
+    text-align: center;
+    border-radius: 16px;
+    background: rgba(20,23,30,.96);
+    border: 1px solid var(--border);
+    box-shadow: 0 20px 60px rgba(0,0,0,.4);
+}
+
+.spinner {
+    width: 30px;
+    height: 30px;
+    margin: 0 auto 12px;
+    border: 3px solid rgba(255,255,255,.12);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.loader-card span {
+    color: var(--muted);
+    font-size: 12px;
+}
+
+#error {
+    position: absolute;
+    left: 18px;
+    right: 18px;
+    bottom: 58px;
+    z-index: 25;
+    display: none;
+    padding: 13px 15px;
+    border-radius: 12px;
+    background: rgba(70,18,24,.94);
+    border: 1px solid rgba(255,100,110,.25);
+    color: #ffd9dc;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+#error.visible {
+    display: block;
+}
+
+#sidebar {
+    min-height: 0;
+    overflow-y: auto;
+    padding: 18px;
+    background: var(--panel);
+    border-left: 1px solid var(--border);
+    box-shadow: -15px 0 50px rgba(0,0,0,.18);
+    z-index: 10;
+}
+
+.sidebar-title {
+    margin-bottom: 20px;
+}
+
+.sidebar-title h1 {
+    font-size: 19px;
+    font-weight: 700;
+}
+
+.sidebar-title p {
+    margin-top: 5px;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.section {
+    padding: 15px 0;
+    border-top: 1px solid var(--border);
+}
+
+.section:first-of-type {
+    border-top: 0;
+}
+
+.section-title {
+    margin-bottom: 11px;
+    color: #dfe4eb;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.file-input {
+    position: relative;
+    display: block;
+    width: 100%;
+    padding: 13px;
+    border: 1px dashed rgba(255,255,255,.16);
+    border-radius: 11px;
+    background: rgba(255,255,255,.025);
+    color: var(--muted);
+    text-align: center;
+    cursor: pointer;
+    transition: .18s ease;
+}
+
+.file-input:hover {
+    border-color: var(--accent);
+    color: var(--text);
+    background: rgba(110,168,255,.06);
+}
+
+.file-input input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.file-input strong {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--text);
+    font-size: 12px;
+}
+
+.file-input span {
+    font-size: 10px;
+}
+
+.file-list {
+    margin-top: 9px;
+    max-height: 100px;
+    overflow: auto;
+}
+
+.file-item {
+    padding: 5px 7px;
+    border-radius: 6px;
+    color: var(--muted);
+    font-size: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.file-item.active {
+    color: var(--accent);
+    background: rgba(110,168,255,.06);
+}
+
+.controls {
+    display: grid;
+    gap: 8px;
+}
+
+.control-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    min-height: 35px;
+}
+
+.control-row label {
+    color: #cbd0d8;
+    font-size: 12px;
+}
+
+select,
+.range-wrap {
+    min-width: 120px;
+}
+
+select {
+    padding: 7px 9px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    outline: 0;
+    color: var(--text);
+    background: var(--panel-2);
+    font-size: 11px;
+}
+
+input[type="range"] {
+    width: 120px;
+    accent-color: var(--accent);
+}
+
+.switch {
+    position: relative;
+    width: 38px;
+    height: 21px;
+    flex: 0 0 auto;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    inset: 0;
+    border-radius: 20px;
+    background: #343943;
+    cursor: pointer;
+    transition: .2s;
+}
+
+.slider::before {
+    content: "";
+    position: absolute;
+    width: 15px;
+    height: 15px;
+    left: 3px;
+    top: 3px;
+    border-radius: 50%;
+    background: white;
+    transition: .2s;
+}
+
+.switch input:checked + .slider {
+    background: var(--accent);
+}
+
+.switch input:checked + .slider::before {
+    transform: translateX(17px);
+}
+
+.button-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.action {
+    min-height: 36px;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: rgba(255,255,255,.045);
+    color: var(--text);
+    cursor: pointer;
+    font-size: 11px;
+    transition: .18s ease;
+}
+
+.action:hover {
+    background: rgba(255,255,255,.09);
+    border-color: rgba(255,255,255,.16);
+}
+
+.action.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #07111f;
+    font-weight: 700;
+}
+
+.action.primary:hover {
+    background: var(--accent-hover);
+}
+
+.stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 7px;
+}
+
+.stat {
+    padding: 10px;
+    border-radius: 9px;
+    background: rgba(255,255,255,.035);
+    border: 1px solid var(--border);
+}
+
+.stat span {
+    display: block;
+    color: var(--muted);
+    font-size: 9px;
+    text-transform: uppercase;
+}
+
+.stat strong {
+    display: block;
+    margin-top: 3px;
+    font-size: 13px;
+}
+
+.help {
+    color: var(--muted);
+    font-size: 10px;
+    line-height: 1.65;
+}
+
+@media (max-width: 850px) {
+    #app {
+        display: block;
+    }
+
+    #viewer {
+        width: 100%;
+        height: 70%;
+    }
+
+    #sidebar {
+        width: 100%;
+        height: 30%;
+        border-left: 0;
+        border-top: 1px solid var(--border);
+        padding: 13px;
+    }
+
+    .sidebar-title {
+        display: none;
+    }
+
+    .section {
+        padding: 10px 0;
+    }
+
+    .section-title {
+        margin-bottom: 7px;
+    }
+}
+
+@media (max-width: 520px) {
+    #viewer {
+        height: 62%;
+    }
+
+    #sidebar {
+        height: 38%;
+    }
+
+    #topbar {
+        top: 10px;
+        left: 10px;
+        right: 10px;
+    }
+
+    .brand {
+        padding: 9px 11px;
+    }
+
+    .brand strong {
+        font-size: 12px;
+    }
+
+    .brand span {
+        font-size: 9px;
+    }
+
+    .icon-btn {
+        width: 37px;
+        height: 37px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div id="app">
+
+    <main id="viewer">
+
+        <canvas id="canvas"></canvas>
+
+        <div id="grid"></div>
+
+        <div id="topbar">
+            <div class="brand">
+                <strong>Visor 3D</strong>
+                <span id="modelName">Ningún modelo cargado</span>
+            </div>
+
+            <div class="viewer-actions">
+                <button class="icon-btn" id="resetBtn" title="Restablecer vista">↻</button>
+                <button class="icon-btn" id="fullscreenBtn" title="Pantalla completa">⛶</button>
+            </div>
+        </div>
+
+        <div id="status">
+            Arrastra para rotar · rueda para zoom · clic derecho para desplazar
+        </div>
+
+        <div id="loading">
+            <div class="loader-card">
+                <div class="spinner"></div>
+                <span id="loadingText">Cargando modelo…</span>
+            </div>
+        </div>
+
+        <div id="error"></div>
+
+    </main>
+
+    <aside id="sidebar">
+
+        <div class="sidebar-title">
+            <h1>Visor 3D profesional</h1>
+            <p>
+                Renderizado PBR, materiales OBJ/MTL,
+                texturas, iluminación y controles avanzados.
+            </p>
+        </div>
+
+        <section class="section">
+
+            <div class="section-title">Archivos del modelo</div>
+
+            <label class="file-input">
+                <input
+                    id="fileInput"
+                    type="file"
+                    multiple
+                    accept=".obj,.mtl,.png,.jpg,.jpeg,.webp,.bmp,.tga"
+                >
+                <strong>Seleccionar modelo</strong>
+                <span>OBJ + MTL + texturas</span>
+            </label>
+
+            <div id="fileList" class="file-list"></div>
+
+        </section>
+
+        <section class="section">
+
+            <div class="section-title">Renderizado</div>
+
+            <div class="controls">
+
+                <div class="control-row">
+                    <label>Iluminación</label>
+                    <select id="lighting">
+                        <option value="studio">Estudio</option>
+                        <option value="neutral">Neutral</option>
+                        <option value="soft">Suave</option>
+                        <option value="dramatic">Dramática</option>
+                    </select>
+                </div>
+
+                <div class="control-row">
+                    <label>Material</label>
+                    <select id="materialMode">
+                        <option value="original">Original</option>
+                        <option value="standard">PBR Standard</option>
+                        <option value="physical">PBR Physical</option>
+                        <option value="matcap">Matcap</option>
+                    </select>
+                </div>
+
+                <div class="control-row">
+                    <label>Exposición</label>
+                    <div class="range-wrap">
+                        <input id="exposure" type="range" min=".5" max="2" step=".01" value="1">
+                    </div>
+                </div>
+
+                <div class="control-row">
+                    <label>Metalness</label>
+                    <div class="range-wrap">
+                        <input id="metalness" type="range" min="0" max="1" step=".01" value=".15">
+                    </div>
+                </div>
+
+                <div class="control-row">
+                    <label>Rugosidad</label>
+                    <div class="range-wrap">
+                        <input id="roughness" type="range" min="0" max="1" step=".01" value=".55">
+                    </div>
+                </div>
+
+                <div class="control-row">
+                    <label>Sombras</label>
+                    <label class="switch">
+                        <input id="shadows" type="checkbox" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="control-row">
+                    <label>Wireframe</label>
+                    <label class="switch">
+                        <input id="wireframe" type="checkbox">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="control-row">
+                    <label>Cuadrícula</label>
+                    <label class="switch">
+                        <input id="gridToggle" type="checkbox">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+            </div>
+
+        </section>
+
+        <section class="section">
+
+            <div class="section-title">Cámara</div>
+
+            <div class="button-grid">
+                <button class="action primary" id="frameBtn">Enfocar modelo</button>
+                <button class="action" id="centerBtn">Centrar</button>
+            </div>
+
+        </section>
+
+        <section class="section">
+
+            <div class="section-title">Información</div>
+
+            <div class="stats">
+                <div class="stat">
+                    <span>Vértices</span>
+                    <strong id="vertices">—</strong>
+                </div>
+
+                <div class="stat">
+                    <span>Triángulos</span>
+                    <strong id="triangles">—</strong>
+                </div>
+
+                <div class="stat">
+                    <span>Materiales</span>
+                    <strong id="materials">—</strong>
+                </div>
+
+                <div class="stat">
+                    <span>Texturas</span>
+                    <strong id="textures">—</strong>
+                </div>
+            </div>
+
+        </section>
+
+        <section class="section">
+
+            <div class="section-title">Controles</div>
+
+            <div class="help">
+                <strong>PC</strong><br>
+                Arrastrar: rotar<br>
+                Rueda: zoom<br>
+                Clic derecho + arrastrar: desplazar<br><br>
+
+                <strong>Móvil</strong><br>
+                Un dedo: rotar<br>
+                Pellizcar: zoom<br>
+                Dos dedos: desplazar
+            </div>
+
+        </section>
+
+    </aside>
+
+</div>
+
+<script type="importmap">
+{
+    "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+    }
+}
+</script>
+
+<script type="module">
+
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
+import { MTLLoader } from "three/addons/loaders/MTLLoader.js";
+
+const canvas = document.getElementById("canvas");
+const viewer = document.getElementById("viewer");
+
+const fileInput = document.getElementById("fileInput");
+const fileList = document.getElementById("fileList");
+const modelName = document.getElementById("modelName");
+
+const loading = document.getElementById("loading");
+const loadingText = document.getElementById("loadingText");
+const errorBox = document.getElementById("error");
+
+const verticesEl = document.getElementById("vertices");
+const trianglesEl = document.getElementById("triangles");
+const materialsEl = document.getElementById("materials");
+const texturesEl = document.getElementById("textures");
+
+const grid = document.getElementById("grid");
+
+let scene;
+let camera;
+let renderer;
+let controls;
+let model = null;
+
+let environmentLights = [];
+let modelCenter = new THREE.Vector3();
+let modelRadius = 1;
+
+let selectedFiles = [];
+let fileMap = new Map();
+let objectUrls = [];
+
+let originalMaterials = new Map();
+
+const textureExtensions = [
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".webp",
+    ".bmp"
+];
+
+const clock = new THREE.Clock();
+
+init();
+
+function init() {
+
+    scene = new THREE.Scene();
+
+    scene.background = new THREE.Color(0x0b0d11);
+
+    camera = new THREE.PerspectiveCamera(
+        45,
+        1,
+        0.01,
+        100000
+    );
+
+    camera.position.set(3, 2, 5);
+
+    renderer = new THREE.WebGLRenderer({
+        canvas,
+        antialias: true,
+        alpha: false,
+        powerPreference: "high-performance",
+        logarithmicDepthBuffer: true
+    });
+
+    renderer.setPixelRatio(
+        Math.min(window.devicePixelRatio || 1, 2.5)
+    );
+
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1;
+
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+    renderer.useLegacyLights = false;
+
+    controls = new OrbitControls(camera, canvas);
+
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.055;
+
+    controls.rotateSpeed = 0.75;
+    controls.zoomSpeed = 0.9;
+    controls.panSpeed = 0.7;
+
+    controls.minDistance = 0.01;
+    controls.maxDistance = 100000;
+
+    controls.screenSpacePanning = true;
+
+    controls.addEventListener("change", render);
+
+    createLights("studio");
+
+    resize();
+
+    window.addEventListener("resize", resize);
+
+    setupUI();
+
+    render();
+
+    requestAnimationFrame(animate);
+}
+
+function createLights(mode = "studio") {
+
+    for (const light of environmentLights) {
+        scene.remove(light);
+    }
+
+    environmentLights.length = 0;
+
+    const ambient = new THREE.HemisphereLight(
+        0xffffff,
+        0x20242b,
+        2.0
+    );
+
+    scene.add(ambient);
+    environmentLights.push(ambient);
+
+    if (mode === "neutral") {
+
+        const key = new THREE.DirectionalLight(
+            0xffffff,
+            3
+        );
+
+        key.position.set(4, 6, 5);
+        key.castShadow = true;
+
+        configureShadow(key);
+
+        scene.add(key);
+        environmentLights.push(key);
+
+        return;
+    }
+
+    if (mode === "soft") {
+
+        const key = new THREE.DirectionalLight(
+            0xffffff,
+            2.2
+        );
+
+        key.position.set(4, 5, 4);
+
+        const fill = new THREE.DirectionalLight(
+            0xdbe8ff,
+            1.5
+        );
+
+        fill.position.set(-4, 2, 3);
+
+        const rim = new THREE.DirectionalLight(
+            0xffffff,
+            1.2
+        );
+
+        rim.position.set(0, 4, -5);
+
+        scene.add(key, fill, rim);
+
+        environmentLights.push(key, fill, rim);
+
+        return;
+    }
+
+    if (mode === "dramatic") {
+
+        const key = new THREE.SpotLight(
+            0xffffff,
+            8,
+            0,
+            Math.PI / 5,
+            .45,
+            1
+        );
+
+        key.position.set(4, 6, 5);
+        key.castShadow = true;
+
+        configureShadow(key);
+
+        const rim = new THREE.DirectionalLight(
+            0x7ca9ff,
+            3
+        );
+
+        rim.position.set(-5, 3, -5);
+
+        scene.add(key, rim);
+
+        environmentLights.push(key, rim);
+
+        return;
+    }
+
+    const key = new THREE.DirectionalLight(
+        0xffffff,
+        4
+    );
+
+    key.position.set(5, 7, 6);
+
+    key.castShadow = true;
+
+    configureShadow(key);
+
+    const fill = new THREE.DirectionalLight(
+        0xbfd8ff,
+        1.5
+    );
+
+    fill.position.set(-5, 3, 4);
+
+    const rim = new THREE.DirectionalLight(
+        0xffffff,
+        2
+    );
+
+    rim.position.set(-3, 5, -6);
+
+    scene.add(key, fill, rim);
+
+    environmentLights.push(key, fill, rim);
+}
+
+function configureShadow(light) {
+
+    light.shadow.mapSize.set(2048, 2048);
+
+    light.shadow.camera.near = 0.1;
+    light.shadow.camera.far = 1000;
+
+    light.shadow.bias = -0.00015;
+    light.shadow.normalBias = 0.025;
+}
+
+function setupUI() {
+
+    fileInput.addEventListener("change", event => {
+
+        selectedFiles = Array.from(event.target.files);
+
+        buildFileMap();
+
+        updateFileList();
+
+        loadSelectedModel();
+    });
+
+    document
+        .getElementById("resetBtn")
+        .addEventListener("click", frameModel);
+
+    document
+        .getElementById("frameBtn")
+        .addEventListener("click", frameModel);
+
+    document
+        .getElementById("centerBtn")
+        .addEventListener("click", centerModel);
+
+    document
+        .getElementById("fullscreenBtn")
+        .addEventListener("click", toggleFullscreen);
+
+    document
+        .getElementById("lighting")
+        .addEventListener("change", event => {
+            createLights(event.target.value);
+            render();
+        });
+
+    document
+        .getElementById("exposure")
+        .addEventListener("input", event => {
+            renderer.toneMappingExposure =
+                Number(event.target.value);
+
+            render();
+        });
+
+    document
+        .getElementById("wireframe")
+        .addEventListener("change", event => {
+
+            if (!model) return;
+
+            model.traverse(object => {
+
+                if (!object.isMesh) return;
+
+                const materials = Array.isArray(object.material)
+                    ? object.material
+                    : [object.material];
+
+                for (const material of materials) {
+                    material.wireframe = event.target.checked;
+                }
+            });
+
+            render();
+        });
+
+    document
+        .getElementById("gridToggle")
+        .addEventListener("change", event => {
+
+            grid.style.opacity =
+                event.target.checked ? ".22" : "0";
+        });
+
+    document
+        .getElementById("shadows")
+        .addEventListener("change", event => {
+
+            renderer.shadowMap.enabled =
+                event.target.checked;
+
+            if (model) {
+
+                model.traverse(object => {
+
+                    if (object.isMesh) {
+                        object.castShadow = event.target.checked;
+                        object.receiveShadow = event.target.checked;
+                    }
+                });
+            }
+
+            render();
+        });
+
+    document
+        .getElementById("materialMode")
+        .addEventListener("change", event => {
+
+            applyMaterialMode(event.target.value);
+
+            render();
+        });
+
+    document
+        .getElementById("metalness")
+        .addEventListener("input", event => {
+
+            if (!model) return;
+
+            model.traverse(object => {
+
+                if (!object.isMesh) return;
+
+                const materials = Array.isArray(object.material)
+                    ? object.material
+                    : [object.material];
+
+                for (const material of materials) {
+
+                    if (
+                        material.isMeshStandardMaterial ||
+                        material.isMeshPhysicalMaterial
+                    ) {
+                        material.metalness =
+                            Number(event.target.value);
+                        material.needsUpdate = true;
+                    }
+                }
+            });
+
+            render();
+        });
+
+    document
+        .getElementById("roughness")
+        .addEventListener("input", event => {
+
+            if (!model) return;
+
+            model.traverse(object => {
+
+                if (!object.isMesh) return;
+
+                const materials = Array.isArray(object.material)
+                    ? object.material
+                    : [object.material];
+
+                for (const material of materials) {
+
+                    if (
+                        material.isMeshStandardMaterial ||
+                        material.isMeshPhysicalMaterial
+                    ) {
+                        material.roughness =
+                            Number(event.target.value);
+                        material.needsUpdate = true;
+                    }
+                }
+            });
+
+            render();
+        });
+}
+
+function buildFileMap() {
+
+    fileMap.clear();
+
+    for (const file of selectedFiles) {
+
+        const full = normalizePath(file.name);
+        const base = full.split("/").pop();
+
+        fileMap.set(full, file);
+        fileMap.set(base, file);
+        fileMap.set(base.toLowerCase(), file);
+    }
+}
+
+function normalizePath(path) {
+
+    return decodeURIComponent(
+        path
+            .replaceAll("\\", "/")
+            .split("/")
+            .pop()
+    ).trim();
+}
+
+function findFile(path) {
+
+    const normalized = normalizePath(path);
+
+    return (
+        fileMap.get(normalized) ||
+        fileMap.get(normalized.toLowerCase()) ||
+        null
+    );
+}
+
+function updateFileList() {
+
+    fileList.innerHTML = "";
+
+    for (const file of selectedFiles) {
+
+        const item = document.createElement("div");
+
+        item.className = "file-item";
+
+        item.textContent =
+            `${file.name} · ${formatBytes(file.size)}`;
+
+        fileList.appendChild(item);
+    }
+}
+
+async function loadSelectedModel() {
+
+    clearError();
+
+    const objFile =
+        selectedFiles.find(file =>
+            file.name.toLowerCase().endsWith(".obj")
+        );
+
+    if (!objFile) {
+
+        showError(
+            "Selecciona al menos un archivo .OBJ."
+        );
+
+        return;
+    }
+
+    showLoading(
+        true,
+        "Preparando modelo y materiales…"
+    );
+
+    try {
+
+        disposeCurrentModel();
+
+        const manager = createLoadingManager();
+
+        const objLoader = new OBJLoader(manager);
+
+        const mtlFile =
+            selectedFiles.find(file =>
+                file.name.toLowerCase().endsWith(".mtl")
+            );
+
+        let materials = null;
+
+        if (mtlFile) {
+
+            showLoading(
+                true,
+                "Cargando materiales MTL y texturas…"
+            );
+
+            const mtlText =
+                await mtlFile.text();
+
+            const mtlLoader =
+                new MTLLoader(manager);
+
+            materials =
+                mtlLoader.parse(
+                    mtlText,
+                    ""
+                );
+
+            materials.preload();
+
+            objLoader.setMaterials(materials);
+        }
+
+        showLoading(
+            true,
+            "Procesando geometría OBJ…"
+        );
+
+        const objText =
+            await objFile.text();
+
+        const object =
+            objLoader.parse(objText);
+
+        if (!object) {
+            throw new Error(
+                "No se pudo interpretar el archivo OBJ."
+            );
+        }
+
+        model = object;
+
+        model.name = objFile.name;
+
+        scene.add(model);
+
+        prepareModel(model, Boolean(materials));
+
+        collectOriginalMaterials(model);
+
+        modelName.textContent =
+            objFile.name;
+
+        updateStats();
+
+        frameModel();
+
+        showLoading(false);
+
+    } catch (error) {
+
+        console.error(error);
+
+        showLoading(false);
+
+        showError(
+            "No se pudo cargar el modelo: " +
+            (error?.message || error)
+        );
+    }
+}
+
+function createLoadingManager() {
+
+    const manager =
+        new THREE.LoadingManager();
+
+    manager.setURLModifier(url => {
+
+        let requested = url;
+
+        try {
+            requested =
+                decodeURIComponent(
+                    requested
+                );
+        } catch {}
+
+        const file =
+            findFile(requested);
+
+        if (!file) {
+
+            const name =
+                normalizePath(requested);
+
+            const direct =
+                selectedFiles.find(
+                    candidate =>
+                        candidate.name.toLowerCase() ===
+                        name.toLowerCase()
+                );
+
+            if (direct) {
+
+                const objectURL =
+                    URL.createObjectURL(direct);
+
+                objectUrls.push(objectURL);
+
+                return objectURL;
+            }
+
+            return url;
+        }
+
+        const objectURL =
+            URL.createObjectURL(file);
+
+        objectUrls.push(objectURL);
+
+        return objectURL;
+    });
+
+    manager.onError = url => {
+
+        console.warn(
+            "No se pudo encontrar un recurso:",
+            url
+        );
+    };
+
+    return manager;
+}
+
+function prepareModel(object, hasMaterials) {
+
+    object.traverse(child => {
+
+        if (!child.isMesh) return;
+
+        child.castShadow = true;
+        child.receiveShadow = true;
+
+        if (!child.geometry.attributes.normal) {
+            child.geometry.computeVertexNormals();
+        }
+
+        child.geometry.computeBoundingSphere();
+
+        const materials = Array.isArray(child.material)
+            ? child.material
+            : [child.material];
+
+        for (const material of materials) {
+
+            if (!material) continue;
+
+            material.side =
+                THREE.FrontSide;
+
+            material.needsUpdate = true;
+
+            if (material.map) {
+                material.map.colorSpace =
+                    THREE.SRGBColorSpace;
+            }
+
+            if (material.emissiveMap) {
+                material.emissiveMap.colorSpace =
+                    THREE.SRGBColorSpace;
+            }
+
+            if (material.normalMap) {
+                material.normalMap.colorSpace =
+                    THREE.NoColorSpace;
+            }
+
+            if (material.roughnessMap) {
+                material.roughnessMap.colorSpace =
+                    THREE.NoColorSpace;
+            }
+
+            if (material.metalnessMap) {
+                material.metalnessMap.colorSpace =
+                    THREE.NoColorSpace;
+            }
+
+            if (material.aoMap) {
+                material.aoMap.colorSpace =
+                    THREE.NoColorSpace;
+            }
+
+            if (material.isMeshPhongMaterial) {
+
+                const standard =
+                    convertPhongToStandard(
+                        material
+                    );
+
+                copyTextureMaps(
+                    material,
+                    standard
+                );
+
+                child.material =
+                    standard;
+            }
+        }
+    });
+
+    if (!hasMaterials) {
+        createFallbackMaterials(object);
+    }
+}
+
+function convertPhongToStandard(source) {
+
+    const material =
+        new THREE.MeshStandardMaterial({
+            color:
+                source.color?.clone() ||
+                new THREE.Color(0xcccccc),
+
+            opacity:
+                source.opacity ?? 1,
+
+            transparent:
+                source.transparent ?? false,
+
+            side:
+                source.side ?? THREE.FrontSide,
+
+            roughness: .55,
+            metalness: .05,
+
+            flatShading:
+                source.flatShading ?? false
+        });
+
+    if (source.map) {
+        material.map =
+            source.map;
+    }
+
+    if (source.normalMap) {
+        material.normalMap =
+            source.normalMap;
+    }
+
+    return material;
+}
+
+function copyTextureMaps(source, target) {
+
+    if (source.map)
+        target.map = source.map;
+
+    if (source.normalMap)
+        target.normalMap = source.normalMap;
+
+    if (source.bumpMap)
+        target.bumpMap = source.bumpMap;
+
+    if (source.roughnessMap)
+        target.roughnessMap =
+            source.roughnessMap;
+
+    if (source.alphaMap)
+        target.alphaMap =
+            source.alphaMap;
+
+    target.needsUpdate = true;
+}
+
+function createFallbackMaterials(object) {
+
+    object.traverse(child => {
+
+        if (!child.isMesh) return;
+
+        const old =
+            Array.isArray(child.material)
+                ? child.material
+                : [child.material];
+
+        const converted =
+            old.map(material => {
+
+                if (
+                    material &&
+                    (
+                        material.isMeshStandardMaterial ||
+                        material.isMeshPhysicalMaterial
+                    )
+                ) {
+                    return material;
+                }
+
+                return new THREE.MeshStandardMaterial({
+                    color:
+                        material?.color?.clone() ||
+                        new THREE.Color(0xcccccc),
+
+                    roughness: .55,
+                    metalness: .05,
+
+                    side: THREE.FrontSide
+                });
+            });
+
+        child.material =
+            converted.length === 1
+                ? converted[0]
+                : converted;
+    });
+}
+
+function collectOriginalMaterials(object) {
+
+    originalMaterials.clear();
+
+    object.traverse(child => {
+
+        if (!child.isMesh) return;
+
+        originalMaterials.set(
+            child.uuid,
+            cloneMaterials(child.material)
+        );
+    });
+}
+
+function cloneMaterials(material) {
+
+    if (Array.isArray(material)) {
+        return material.map(item =>
+            item.clone()
+        );
+    }
+
+    return material.clone();
+}
+
+function applyMaterialMode(mode) {
+
+    if (!model) return;
+
+    model.traverse(child => {
+
+        if (!child.isMesh) return;
+
+        const original =
+            originalMaterials.get(
+                child.uuid
+            );
+
+        if (!original) return;
+
+        if (mode === "original") {
+
+            child.material =
+                cloneMaterials(original);
+
+            normalizeTextures(
+                child.material
+            );
+
+            return;
+        }
+
+        if (mode === "standard") {
+
+            child.material =
+                makePBRMaterial(
+                    original,
+                    false
+                );
+
+            return;
+        }
+
+        if (mode === "physical") {
+
+            child.material =
+                makePBRMaterial(
+                    original,
+                    true
+                );
+
+            return;
+        }
+
+        if (mode === "matcap") {
+
+            child.material =
+                makeMatcapMaterial(
+                    original
+                );
+        }
+    });
+}
+
+function makePBRMaterial(
+    original,
+    physical
+) {
+
+    const source =
+        Array.isArray(original)
+            ? original[0]
+            : original;
+
+    const MaterialClass =
+        physical
+            ? THREE.MeshPhysicalMaterial
+            : THREE.MeshStandardMaterial;
+
+    const material =
+        new MaterialClass({
+            color:
+                source.color?.clone() ||
+                new THREE.Color(0xcccccc),
+
+            roughness:
+                source.roughness ?? .55,
+
+            metalness:
+                source.metalness ?? .05,
+
+            transparent:
+                source.transparent ?? false,
+
+            opacity:
+                source.opacity ?? 1,
+
+            side:
+                source.side ?? THREE.FrontSide
+        });
+
+    if (source.map) {
+        material.map =
+            source.map;
+    }
+
+    if (source.normalMap) {
+        material.normalMap =
+            source.normalMap;
+
+        material.normalScale =
+            source.normalScale?.clone() ||
+            new THREE.Vector2(1, 1);
+    }
+
+    if (source.roughnessMap) {
+        material.roughnessMap =
+            source.roughnessMap;
+    }
+
+    if (source.metalnessMap) {
+        material.metalnessMap =
+            source.metalnessMap;
+    }
+
+    if (source.aoMap) {
+        material.aoMap =
+            source.aoMap;
+    }
+
+    if (source.alphaMap) {
+        material.alphaMap =
+            source.alphaMap;
+    }
+
+    if (source.emissive) {
+        material.emissive =
+            source.emissive.clone();
+
+        material.emissiveIntensity =
+            source.emissiveIntensity ?? 1;
+
+        if (source.emissiveMap) {
+            material.emissiveMap =
+                source.emissiveMap;
+        }
+    }
+
+    normalizeTextures(material);
+
+    return material;
+}
+
+function makeMatcapMaterial(original) {
+
+    const source =
+        Array.isArray(original)
+            ? original[0]
+            : original;
+
+    const material =
+        new THREE.MeshMatcapMaterial({
+            color:
+                source.color?.clone() ||
+                new THREE.Color(0xffffff),
+
+            map:
+                source.map || null,
+
+            normalMap:
+                source.normalMap || null,
+
+            side:
+                source.side ?? THREE.FrontSide
+        });
+
+    normalizeTextures(material);
+
+    return material;
+}
+
+function normalizeTextures(material) {
+
+    const materials =
+        Array.isArray(material)
+            ? material
+            : [material];
+
+    for (const item of materials) {
+
+        if (!item) continue;
+
+        const colorTextures = [
+            "map",
+            "emissiveMap"
+        ];
+
+        const dataTextures = [
+            "normalMap",
+            "roughnessMap",
+            "metalnessMap",
+            "aoMap",
+            "alphaMap",
+            "bumpMap",
+            "displacementMap"
+        ];
+
+        for (const key of colorTextures) {
+
+            if (item[key]) {
+                item[key].colorSpace =
+                    THREE.SRGBColorSpace;
+
+                item[key].needsUpdate =
+                    true;
+            }
+        }
+
+        for (const key of dataTextures) {
+
+            if (item[key]) {
+                item[key].colorSpace =
+                    THREE.NoColorSpace;
+
+                item[key].needsUpdate =
+                    true;
+            }
+        }
+
+        item.needsUpdate = true;
+    }
+}
+
+function frameModel() {
+
+    if (!model) {
+
+        camera.position.set(3, 2, 5);
+
+        controls.target.set(0, 0, 0);
+
+        controls.update();
+
+        render();
+
+        return;
+    }
+
+    model.rotation.set(0, 0, 0);
+
+    const box =
+        new THREE.Box3()
+            .setFromObject(model);
+
+    if (box.isEmpty()) return;
+
+    const center =
+        box.getCenter(
+            new THREE.Vector3()
+        );
+
+    const size =
+        box.getSize(
+            new THREE.Vector3()
+        );
+
+    const maxSize =
+        Math.max(
+            size.x,
+            size.y,
+            size.z
+        );
+
+    modelCenter.copy(center);
+
+    modelRadius =
+        Math.max(maxSize * .5, .001);
+
+    const fov =
+        THREE.MathUtils.degToRad(
+            camera.fov
+        );
+
+    let distance =
+        modelRadius /
+        Math.tan(fov / 2);
+
+    distance *= 1.25;
+
+    camera.position.set(
+        center.x + distance * .65,
+        center.y + distance * .4,
+        center.z + distance
+    );
+
+    controls.target.copy(center);
+
+    controls.minDistance =
+        Math.max(modelRadius * .02, .001);
+
+    controls.maxDistance =
+        Math.max(modelRadius * 100, 10);
+
+    controls.update();
+
+    render();
+}
+
+function centerModel() {
+
+    if (!model) return;
+
+    const box =
+        new THREE.Box3()
+            .setFromObject(model);
+
+    const center =
+        box.getCenter(
+            new THREE.Vector3()
+        );
+
+    const offset =
+        center.clone()
+            .multiplyScalar(-1);
+
+    model.position.add(offset);
+
+    frameModel();
+}
+
+function disposeCurrentModel() {
+
+    if (!model) return;
+
+    scene.remove(model);
+
+    model.traverse(object => {
+
+        if (!object.isMesh) return;
+
+        if (object.geometry) {
+            object.geometry.dispose();
+        }
+
+        const materials =
+            Array.isArray(object.material)
+                ? object.material
+                : [object.material];
+
+        for (const material of materials) {
+
+            if (!material) continue;
+
+            const maps = [
+                "map",
+                "normalMap",
+                "roughnessMap",
+                "metalnessMap",
+                "aoMap",
+                "alphaMap",
+                "bumpMap",
+                "displacementMap",
+                "emissiveMap"
+            ];
+
+            for (const key of maps) {
+
+                const texture =
+                    material[key];
+
+                if (texture) {
+                    texture.dispose();
+                }
+            }
+
+            material.dispose();
+        }
+    });
+
+    model = null;
+
+    originalMaterials.clear();
+
+    for (const url of objectUrls) {
+
+        URL.revokeObjectURL(url);
+    }
+
+    objectUrls = [];
+
+    verticesEl.textContent = "—";
+    trianglesEl.textContent = "—";
+    materialsEl.textContent = "—";
+    texturesEl.textContent = "—";
+}
+
+function updateStats() {
+
+    if (!model) return;
+
+    let vertices = 0;
+    let triangles = 0;
+    let materials = 0;
+    let textures = 0;
+
+    const materialSet =
+        new Set();
+
+    const textureSet =
+        new Set();
+
+    model.traverse(object => {
+
+        if (!object.isMesh) return;
+
+        const geometry =
+            object.geometry;
+
+        if (geometry.index) {
+
+            triangles +=
+                geometry.index.count / 3;
+
+        } else if (
+            geometry.attributes.position
+        ) {
+
+            triangles +=
+                geometry.attributes.position.count / 3;
+        }
+
+        if (geometry.attributes.position) {
+            vertices +=
+                geometry.attributes.position.count;
+        }
+
+        const materialList =
+            Array.isArray(object.material)
+                ? object.material
+                : [object.material];
+
+        for (const material of materialList) {
+
+            if (!material) continue;
+
+            materialSet.add(material.uuid);
+
+            const maps = [
+                material.map,
+                material.normalMap,
+                material.roughnessMap,
+                material.metalnessMap,
+                material.aoMap,
+                material.alphaMap,
+                material.bumpMap,
+                material.displacementMap,
+                material.emissiveMap
+            ];
+
+            for (const texture of maps) {
+
+                if (texture) {
+                    textureSet.add(texture.uuid);
+                }
+            }
+        }
+    });
+
+    verticesEl.textContent =
+        formatNumber(vertices);
+
+    trianglesEl.textContent =
+        formatNumber(Math.floor(triangles));
+
+    materialsEl.textContent =
+        formatNumber(materialSet.size);
+
+    texturesEl.textContent =
+        formatNumber(textureSet.size);
+}
+
+function resize() {
+
+    const width =
+        viewer.clientWidth;
+
+    const height =
+        viewer.clientHeight;
+
+    if (!width || !height) return;
+
+    camera.aspect =
+        width / height;
+
+    camera.updateProjectionMatrix();
+
+    renderer.setSize(
+        width,
+        height,
+        false
+    );
+
+    render();
+}
+
+function animate() {
+
+    requestAnimationFrame(
+        animate
+    );
+
+    const delta =
+        clock.getDelta();
+
+    controls.update(delta);
+
+    render();
+}
+
+function render() {
+
+    if (!renderer || !scene || !camera) {
+        return;
+    }
+
+    renderer.render(
+        scene,
+        camera
+    );
+}
+
+function showLoading(show, text = "") {
+
+    loading.classList.toggle(
+        "visible",
+        show
+    );
+
+    if (text) {
+        loadingText.textContent =
+            text;
+    }
+}
+
+function showError(message) {
+
+    errorBox.textContent =
+        message;
+
+    errorBox.classList.add(
+        "visible"
+    );
+}
+
+function clearError() {
+
+    errorBox.textContent = "";
+
+    errorBox.classList.remove(
+        "visible"
+    );
+}
+
+async function toggleFullscreen() {
+
+    try {
+
+        if (!document.fullscreenElement) {
+
+            await viewer.requestFullscreen();
+
+        } else {
+
+            await document.exitFullscreen();
+        }
+
+    } catch (error) {
+
+        console.warn(
+            "Pantalla completa no disponible:",
+            error
+        );
+    }
+}
+
+function formatNumber(number) {
+
+    return new Intl.NumberFormat(
+        "es-ES"
+    ).format(number);
+}
+
+function formatBytes(bytes) {
+
+    if (!bytes) return "0 B";
+
+    const units = [
+        "B",
+        "KB",
+        "MB",
+        "GB"
+    ];
+
+    const index =
+        Math.floor(
+            Math.log(bytes) /
+            Math.log(1024)
+        );
+
+    return (
+        (bytes /
+            Math.pow(1024, index)
+        ).toFixed(
+            index === 0 ? 0 : 1
+        ) +
+        " " +
+        units[index]
+    );
+}
+
+document.addEventListener(
+    "dragover",
+    event => {
+        event.preventDefault();
+    }
+);
+
+document.addEventListener(
+    "drop",
+    event => {
+
+        event.preventDefault();
+
+        if (!event.dataTransfer?.files?.length) {
+            return;
+        }
+
+        selectedFiles =
+            Array.from(
+                event.dataTransfer.files
+            );
+
+        buildFileMap();
+        updateFileList();
+        loadSelectedModel();
+    }
+);
+
+</script>
+
+</body>
+</html>
